@@ -735,7 +735,14 @@ class SwiftuiInterface : NSObject {
 #endif
         return host
     }
-    
+
+    @objc
+    func makeBlockedUsersView(for xmppAccount: xmpp) -> UIViewController {
+        let host = UIHostingController(rootView:AnyView(EmptyView()))
+            host.rootView = AnyView(BlockedUsers(xmppAccount: xmppAccount))
+        return host
+    }
+
     @objc
     func makePasswordMigration(_ needingMigration: [[String:NSObject]]) -> UIViewController {
         let delegate = SheetDismisserProtocol()
