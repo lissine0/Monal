@@ -186,7 +186,7 @@ struct ContactDetails: View {
                     
                     
                     //only show account jid if more than one is configured
-                    if MLXMPPManager.sharedInstance().connectedXMPP.count > 1 && !contact.isSelfChat {
+                    if MLXMPPManager.sharedInstance().enabledXMPP.count > 1 && !contact.isSelfChat {
                         Text("Account: \(account.connectionProperties.identity.jid)")
                     }
                     

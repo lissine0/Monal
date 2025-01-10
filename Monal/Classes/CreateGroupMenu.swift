@@ -25,7 +25,7 @@ struct CreateGroupMenu: View {
         self.appDelegate = UIApplication.shared.delegate as! MonalAppDelegate
         self.delegate = delegate
 
-        let enabledAccounts = MLXMPPManager.sharedInstance().connectedXMPP as! [xmpp]
+        let enabledAccounts = MLXMPPManager.sharedInstance().enabledXMPP as! [xmpp]
         self.enabledAccounts = enabledAccounts
         _selectedAccount = State(wrappedValue: enabledAccounts.first)
     }

@@ -107,7 +107,7 @@ Sends a message to a specified contact in account. Calls completion handler on s
 
 #pragma mark XMPP settings
 
-@property (nonatomic, strong, readonly) NSMutableArray* connectedXMPP;
+@property (nonatomic, strong, readonly) NSMutableArray* enabledXMPP;
 @property (nonatomic, readonly) BOOL hasConnectivity;
 
 @property (nonatomic, assign) BOOL hasAPNSToken;

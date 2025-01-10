@@ -421,7 +421,7 @@ struct NotificationSettings: View {
     @State private var pushPermissionEnabled = false
     
     private var pushNotEnabled: Bool {
-        let xmppAccountInfo = MLXMPPManager.sharedInstance().connectedXMPP as! [xmpp]
+        let xmppAccountInfo = MLXMPPManager.sharedInstance().enabledXMPP as! [xmpp]
         var pushNotEnabled = false
         for account in xmppAccountInfo {
             pushNotEnabled = pushNotEnabled || !account.connectionProperties.pushEnabled

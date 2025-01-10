@@ -359,7 +359,7 @@
 {
     DDLogInfo(@"Freezing all incoming streams until we know if we are either terminating or got another push");
     dispatch_queue_t queue = dispatch_queue_create("im.monal.freezeAllParseQueues", DISPATCH_QUEUE_CONCURRENT);
-    for(xmpp* account in [MLXMPPManager sharedInstance].connectedXMPP)
+    for(xmpp* account in [MLXMPPManager sharedInstance].enabledXMPP)
     {
         //disconnect to prevent endless loops trying to connect
         dispatch_async(queue, ^{
@@ -377,7 +377,7 @@
 -(void) unfreezeAllParseQueues
 {
     DDLogInfo(@"Unfreezing all incoming streams again, we got another push");
-    for(xmpp* account in [MLXMPPManager sharedInstance].connectedXMPP)
+    for(xmpp* account in [MLXMPPManager sharedInstance].enabledXMPP)
         [account unfreezeParseQueue];
     DDLogInfo(@"All parse queues operational again");
 }

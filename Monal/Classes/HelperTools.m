@@ -1880,7 +1880,7 @@ static void notification_center_logging(CFNotificationCenterRef center, void* ob
 {
     NSMutableDictionary* syncErrorsDisplayed = [NSMutableDictionary dictionaryWithDictionary:[[HelperTools defaultsDB] objectForKey:@"syncErrorsDisplayed"]];
     DDLogInfo(@"Clearing syncError notification states: %@", syncErrorsDisplayed);
-    for(xmpp* account in [MLXMPPManager sharedInstance].connectedXMPP)
+    for(xmpp* account in [MLXMPPManager sharedInstance].enabledXMPP)
     {
         syncErrorsDisplayed[account.connectionProperties.identity.jid] = @NO;
         //also remove pending or delivered sync error notifications
@@ -1897,7 +1897,7 @@ static void notification_center_logging(CFNotificationCenterRef center, void* ob
 {
     NSMutableDictionary* syncErrorsDisplayed = [NSMutableDictionary dictionaryWithDictionary:[[HelperTools defaultsDB] objectForKey:@"syncErrorsDisplayed"]];
     DDLogInfo(@"Removing pending syncError notifications, current state: %@", syncErrorsDisplayed);
-    for(xmpp* account in [MLXMPPManager sharedInstance].connectedXMPP)
+    for(xmpp* account in [MLXMPPManager sharedInstance].enabledXMPP)
     {
         NSString* syncErrorIdentifier = [NSString stringWithFormat:@"syncError::%@", account.connectionProperties.identity.jid];
         [[UNUserNotificationCenter currentNotificationCenter] getPendingNotificationRequestsWithCompletionHandler:^(NSArray* requests) {
@@ -1922,7 +1922,7 @@ static void notification_center_logging(CFNotificationCenterRef center, void* ob
         @synchronized(self) {
             NSMutableDictionary* syncErrorsDisplayed = [NSMutableDictionary dictionaryWithDictionary:[[HelperTools defaultsDB] objectForKey:@"syncErrorsDisplayed"]];
             DDLogInfo(@"Updating syncError notifications: %@", syncErrorsDisplayed);
-            for(xmpp* account in [MLXMPPManager sharedInstance].connectedXMPP)
+            for(xmpp* account in [MLXMPPManager sharedInstance].enabledXMPP)
             {
                 NSString* syncErrorIdentifier = [NSString stringWithFormat:@"syncError::%@", account.connectionProperties.identity.jid];
                 //dispatching this to the receive queue isn't neccessary anymore, see comments in account.idle

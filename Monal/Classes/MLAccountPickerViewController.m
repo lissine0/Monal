@@ -27,13 +27,13 @@
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return [[MLXMPPManager sharedInstance].connectedXMPP count];
+    return [[MLXMPPManager sharedInstance].enabledXMPP count];
 }
 
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"AccountCell" forIndexPath:indexPath];
-    xmpp* xmppAccount = [MLXMPPManager sharedInstance].connectedXMPP[indexPath.row];
+    xmpp* xmppAccount = [MLXMPPManager sharedInstance].enabledXMPP[indexPath.row];
     cell.textLabel.text=xmppAccount.connectionProperties.identity.jid;
     return cell;
 }

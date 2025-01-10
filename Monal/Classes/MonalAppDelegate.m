@@ -551,7 +551,7 @@ $$
     
     //init background/foreground status
     //this has to be done here to make sure we have the correct state when he app got started through notification quick actions
-    //NOTE: the connectedXMPP array does not exist at this point --> calling this methods only updates the state without messing with the accounts themselves
+    //NOTE: the enabledXMPP array does not exist at this point --> calling this methods only updates the state without messing with the accounts themselves
     if([UIApplication sharedApplication].applicationState==UIApplicationStateBackground)
         [[MLXMPPManager sharedInstance] nowBackgrounded];
     else
@@ -688,7 +688,7 @@ $$
 
 -(void) applicationDidBecomeActive:(UIApplication*) application
 {
-    if([[MLXMPPManager sharedInstance] connectedXMPP].count > 0)
+    if([[MLXMPPManager sharedInstance] enabledXMPP].count > 0)
         [self handleSpinner];
     else
     {
@@ -734,7 +734,7 @@ $$
             [self.activeChats dismissCompleteViewChainWithAnimation:NO andCompletion:^{
                 [self.activeChats segueToIntroScreensIfNeeded];
                 
-                BOOL registerNeeded = [MLXMPPManager sharedInstance].connectedXMPP.count == 0;
+                BOOL registerNeeded = [MLXMPPManager sharedInstance].enabledXMPP.count == 0;
                 NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
                 DDLogVerbose(@"URI path '%@'", components.path);
                 DDLogVerbose(@"URI query '%@'", components.query);
@@ -829,10 +829,10 @@ $$
                 //OR the xmpp: uri is a normal xmpp uri having only a jid we should add as our new contact (preauthToken will be nil in this case)
                 else if((!registerNeeded && (isRoster || isMucJoin)) || !registerNeeded)
                 {
-                    if([MLXMPPManager sharedInstance].connectedXMPP.count == 1)
+                    if([MLXMPPManager sharedInstance].enabledXMPP.count == 1)
                     {
                         //the add contacts ui will check if the contact is already present on the selected account
-                        xmpp* account = [[MLXMPPManager sharedInstance].connectedXMPP firstObject];
+                        xmpp* account = [[MLXMPPManager sharedInstance].enabledXMPP firstObject];
                         [self.activeChats showAddContactWithJid:jid preauthToken:preauthToken prefillAccount:account andOmemoFingerprints:omemoFingerprints];
                     }
                     else
@@ -1144,7 +1144,7 @@ $$
 
 -(void) prepareForFreeze:(NSNotification*) notification
 {
-    for(xmpp* account in [MLXMPPManager sharedInstance].connectedXMPP)
+    for(xmpp* account in [MLXMPPManager sharedInstance].enabledXMPP)
         [account freeze];
     [MLProcessLock unlock];
     _wasFrozen = YES;

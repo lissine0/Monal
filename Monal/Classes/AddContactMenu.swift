@@ -47,7 +47,7 @@ struct AddContactMenu: View {
             self.scannedFingerprints = omemoFingerprints
         }
         
-        let enabledAccounts = MLXMPPManager.sharedInstance().connectedXMPP as! [xmpp]
+        let enabledAccounts = MLXMPPManager.sharedInstance().enabledXMPP as! [xmpp]
         self.enabledAccounts = enabledAccounts
         self.selectedAccount = enabledAccounts.first != nil ? 0 : -1;
         if let prefillAccount = prefillAccount {

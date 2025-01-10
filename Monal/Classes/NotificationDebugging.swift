@@ -31,7 +31,7 @@ struct NotificationDebugging: View {
     init() {
         self.applePushEnabled = MLXMPPManager.sharedInstance().hasAPNSToken;
         self.applePushToken = MLXMPPManager.sharedInstance().pushToken;
-        self.xmppAccountInfo = MLXMPPManager.sharedInstance().connectedXMPP as! [xmpp]
+        self.xmppAccountInfo = MLXMPPManager.sharedInstance().enabledXMPP as! [xmpp]
 
         // push server selector
         self.availablePushServers = HelperTools.getAvailablePushServers()

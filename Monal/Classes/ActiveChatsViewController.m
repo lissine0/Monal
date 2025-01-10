@@ -605,7 +605,7 @@ static NSMutableSet* _pushWarningDisplayed;
 -(void) showAddContactWithJid:(NSString*) jid preauthToken:(NSString* _Nullable) preauthToken prefillAccount:(xmpp* _Nullable) account andOmemoFingerprints:(NSDictionary* _Nullable) fingerprints
 {
     //check if contact is already known in any of our accounts and open a chat with the first contact we can find
-    for(xmpp* checkAccount in [MLXMPPManager sharedInstance].connectedXMPP)
+    for(xmpp* checkAccount in [MLXMPPManager sharedInstance].enabledXMPP)
     {
         MLContact* checkContact = [MLContact createContactFromJid:jid andAccountID:checkAccount.accountID];
         if(checkContact.isInRoster)
@@ -787,7 +787,7 @@ static NSMutableSet* _pushWarningDisplayed;
             
             DDLogDebug(@"Got list of contact phone numbers: %@", numbers);
             
-            NSArray<xmpp*>* enabledAccounts = [MLXMPPManager sharedInstance].connectedXMPP;
+            NSArray<xmpp*>* enabledAccounts = [MLXMPPManager sharedInstance].enabledXMPP;
             if(enabledAccounts.count == 0)
             {
                 DDLogError(@"No connected account while trying to send quicksy phonebook!");

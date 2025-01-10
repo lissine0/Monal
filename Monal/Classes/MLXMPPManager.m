@@ -31,7 +31,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 {
     nw_path_monitor_t _path_monitor;
     BOOL _hasConnectivity;
-    NSMutableArray* _connectedXMPP;
+    NSMutableArray* _enabledXMPP;
 }
 @end
 
@@ -239,7 +239,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 {
     self = [super init];
 
-    _connectedXMPP = [NSMutableArray new];
+    _enabledXMPP = [NSMutableArray new];
     _hasConnectivity = NO;
     _isBackgrounded = NO;
     _isNotInFocus = NO;
@@ -261,7 +261,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
                               60ull * NSEC_PER_SEC);        //allow for better battery optimizations
 
     dispatch_source_set_event_handler(_pinger, ^{
-        for(xmpp* xmppAccount in [self connectedXMPP])
+        for(xmpp* xmppAccount in [self enabledXMPP])
         {
             if(xmppAccount.accountState>=kStateBound) {
                 DDLogInfo(@"began a idle ping");
@@ -293,7 +293,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
         {
             DDLogVerbose(@"reachable again");
             self->_hasConnectivity = YES;
-            for(xmpp* xmppAccount in [self connectedXMPP])
+            for(xmpp* xmppAccount in [self enabledXMPP])
             {
                 if(![HelperTools isAppExtension])
                 {
@@ -332,7 +332,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
             //when switching from wifi to mobile (or back) we sometimes don't have any unreachable state in between
             //--> reconnect directly because switching from wifi to mobile will cut the connection a few seconds after the switch anyways
             //NOTE: wait for 1 sec before reconnecting to compensate for multiple nw_path updates in a row
-            for(xmpp* xmppAccount in [self connectedXMPP])
+            for(xmpp* xmppAccount in [self enabledXMPP])
                 //don't reconnect if appex has frozen our queues!
                 if(!xmppAccount.parseQueueFrozen)
                 {
@@ -353,7 +353,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     //we use this to decrement the timeout value of an iq handler / idle timer every second until it reaches zero
     dispatch_async(dispatch_queue_create_with_target("im.monal.timeouts", DISPATCH_QUEUE_SERIAL, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0)), ^{
         while(YES) {
-            for(xmpp* account in [MLXMPPManager sharedInstance].connectedXMPP)
+            for(xmpp* account in [MLXMPPManager sharedInstance].enabledXMPP)
                 [account updateIqHandlerTimeouts];
             
             //needed to not crash the app with an obscure EXC_BREAKPOINT while deleting something in a currently open chat
@@ -385,10 +385,10 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 }
 
 //this returns a copy to iterate on without the need of a synchronized block while iterating
--(NSArray*) connectedXMPP
+-(NSArray*) enabledXMPP
 {
-    @synchronized(_connectedXMPP) {
-        return [[NSArray alloc] initWithArray:_connectedXMPP];
+    @synchronized(_enabledXMPP) {
+        return [[NSArray alloc] initWithArray:_enabledXMPP];
     }
 }
 
@@ -400,7 +400,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 
 -(BOOL) allAccountsIdle
 {
-    for(xmpp* xmppAccount in [self connectedXMPP])
+    for(xmpp* xmppAccount in [self enabledXMPP])
         if(!xmppAccount.idle)
             return NO;
     return YES;
@@ -421,7 +421,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     _isBackgrounded = YES;
     _isNotInFocus = YES;
     
-    for(xmpp* xmppAccount in [self connectedXMPP])
+    for(xmpp* xmppAccount in [self enabledXMPP])
         [xmppAccount setClientInactive];
 }
 
@@ -434,7 +434,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     
     //*** we don't need to check for a running service extension here because the appdelegate does this already for us ***
     
-    for(xmpp* xmppAccount in [self connectedXMPP])
+    for(xmpp* xmppAccount in [self enabledXMPP])
     {
         [xmppAccount unfreeze];
         [xmppAccount sendPing:SHORT_PING];     //short ping timeout to quickly check if connectivity is still okay
@@ -466,7 +466,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 
 -(xmpp* _Nullable) getEnabledAccountForID:(NSNumber*) accountID
 {
-    for(xmpp* xmppAccount in [self connectedXMPP])
+    for(xmpp* xmppAccount in [self enabledXMPP])
     {
         //using stringWithFormat: makes sure this REALLY is a string
         if(xmppAccount.accountID.intValue == accountID.intValue)
@@ -540,8 +540,8 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     xmpp* xmppAccount = [[xmpp alloc] initWithServer:server andIdentity:identity andAccountID:[account objectForKey:kAccountID]];
     xmppAccount.statusMessage = [account objectForKey:@"statusMessage"];
 
-    @synchronized(_connectedXMPP) {
-        [_connectedXMPP addObject:xmppAccount];
+    @synchronized(_enabledXMPP) {
+        [_enabledXMPP addObject:xmppAccount];
     }
 
     if(![account[@"enabled"] boolValue])
@@ -563,8 +563,8 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     int index = 0;
     int pos = -1;
     xmpp* account;
-    @synchronized(_connectedXMPP) {
-        for(xmpp* xmppAccount in _connectedXMPP)
+    @synchronized(_enabledXMPP) {
+        for(xmpp* xmppAccount in _enabledXMPP)
         {
             if(xmppAccount.accountID.intValue == accountID.intValue)
             {
@@ -575,9 +575,9 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
             index++;
         }
 
-        if((pos >= 0) && (pos < (int)[_connectedXMPP count]))
+        if((pos >= 0) && (pos < (int)[_enabledXMPP count]))
         {
-            [_connectedXMPP removeObjectAtIndex:pos];
+            [_enabledXMPP removeObjectAtIndex:pos];
             DDLogVerbose(@"removed account at pos  %d", pos);
         }
     }
@@ -610,7 +610,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 {
     DDLogVerbose(@"manager disconnecAll");
     dispatch_queue_t queue = dispatch_queue_create("im.monal.disconnect", DISPATCH_QUEUE_CONCURRENT);
-    for(xmpp* xmppAccount in [self connectedXMPP])
+    for(xmpp* xmppAccount in [self enabledXMPP])
     {
         //disconnect to prevent endless loops trying to connect
         dispatch_async(queue, ^{
@@ -800,9 +800,9 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 -(NSString*) getAccountNameForConnectedRow:(NSUInteger) row
 {
     xmpp* account;
-    @synchronized(_connectedXMPP) {
-        if(row<[_connectedXMPP count] && row>=0)
-            account = [_connectedXMPP objectAtIndex:row];
+    @synchronized(_enabledXMPP) {
+        if(row<[_enabledXMPP count] && row>=0)
+            account = [_enabledXMPP objectAtIndex:row];
     }
     if(account)
         return account.connectionProperties.identity.jid;
@@ -952,7 +952,7 @@ $$
 
     //only try to enable push if we have a node and secret value
     if(self.hasAPNSToken)
-        for(xmpp* xmppAccount in [self connectedXMPP])
+        for(xmpp* xmppAccount in [self enabledXMPP])
             [xmppAccount enablePush];
 }
 
@@ -962,7 +962,7 @@ $$
 
     [[HelperTools defaultsDB] removeObjectForKey:@"pushToken"];
     self.hasAPNSToken = NO;
-    for(xmpp* xmppAccount in [self connectedXMPP])
+    for(xmpp* xmppAccount in [self enabledXMPP])
         [xmppAccount disablePush];
 }
 
