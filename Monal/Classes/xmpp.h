@@ -79,6 +79,7 @@ typedef void (^monal_iq_handler_t)(XMPPIQ* _Nullable);
 @property (nonatomic, strong) NSDictionary *regHidden;
 
 // state attributes
+@property (nonatomic, assign) BOOL isEnabled;
 @property (nonatomic, strong) NSString* statusMessage;
 
 // DB info

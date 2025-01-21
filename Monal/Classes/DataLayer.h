@@ -151,6 +151,8 @@ extern NSString* const kMessageTypeFiletransfer;
 -(NSNumber*) enabledAccountCnts;
 -(NSArray*) enabledAccountList;
 -(BOOL) isAccountEnabled:(NSNumber*) accountID;
+-(BOOL) disableAccountForID:(NSNumber*) accountID;
+-(BOOL) enableAccountForID:(NSNumber*) accountID;
 -(BOOL) doesAccountExistUser:(NSString*) user andDomain:(NSString *) domain;
 -(NSNumber* _Nullable) accountIDForUser:(NSString*) user andDomain:(NSString *) domain;
 

@@ -136,7 +136,7 @@ struct ChatView: View {
     
     private func checkOmemoSupport(withAlert showWarning: Bool) {
 #if !DISABLE_OMEMO
-    if DataLayer.sharedInstance().isAccountEnabled(contact.accountID) {
+    if account.isEnabled {
         var omemoDeviceForContactFound = false
         if !contact.isMuc {
             omemoDeviceForContactFound = account.omemo.knownDevices(forAddressName:contact.contactJid).count > 0

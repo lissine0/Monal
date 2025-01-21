@@ -648,7 +648,7 @@ enum msgSentState {
 
     //send button is always enabled, except if the account is permanently disabled
     sendButtonEnabled = YES;
-    if(![[DataLayer sharedInstance] isAccountEnabled:self.contact.accountID])
+    if(!self.contact.account.isEnabled)
         sendButtonEnabled = NO;
 
     jidLabelText = contactDisplayName;
@@ -3165,7 +3165,7 @@ enum msgSentState {
 -(void) checkOmemoSupportWithAlert:(BOOL) showWarning
 {
 #ifndef DISABLE_OMEMO
-    if(self.xmppAccount && [[DataLayer sharedInstance] isAccountEnabled:self.xmppAccount.accountID])
+    if(self.xmppAccount && self.xmppAccount.isEnabled)
     {
         BOOL omemoDeviceForContactFound = NO;
         if(!self.contact.isMuc)

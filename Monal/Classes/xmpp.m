@@ -918,7 +918,7 @@ NSString* const kStanza = @"stanza";
         }
         
         //make sure we are still enabled ("-1" is used for the account registration process and never saved to db)
-        if(self.accountID.intValue != -1 && ![[DataLayer sharedInstance] isAccountEnabled:self.accountID])
+        if(self.accountID.intValue != -1 && !self.isEnabled)
         {
             DDLogError(@"Account '%@' not enabled anymore, ignoring login", self.accountID);
             return;
@@ -1501,7 +1501,7 @@ NSString* const kStanza = @"stanza";
         DDLogVerbose(@"sendPing called - now inside receiveQueue");
         
         //make sure we are enabled before doing anything
-        if(![[DataLayer sharedInstance] isAccountEnabled:self.accountID])
+        if(!self.isEnabled)
         {
             DDLogInfo(@"account is disabled, ignoring ping.");
             return;
@@ -5570,6 +5570,19 @@ NSString* const kStanza = @"stanza";
 -(void) markCapsQueryCompleteFor:(NSString*) ver
 {
     [_runningCapsQueries removeObject:ver];
+}
+
+-(void) setIsEnabled:(BOOL) isEnabled
+{
+    if (isEnabled)
+        [[DataLayer sharedInstance] enableAccountForID:self.accountID];
+    else
+        [[DataLayer sharedInstance] disableAccountForID:self.accountID];
+}
+
+-(BOOL) isEnabled
+{
+    return [[DataLayer sharedInstance] isAccountEnabled:self.accountID];
 }
 
 -(void) publishRosterName:(NSString* _Nullable) rosterName
