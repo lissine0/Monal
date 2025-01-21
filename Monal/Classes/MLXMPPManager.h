@@ -24,6 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 +(MLXMPPManager*) sharedInstance;
 
 -(BOOL) allAccountsIdle;
+-(void) migrateToStoringAllAccounts;
 
 #pragma  mark connectivity
 /**
@@ -76,6 +77,8 @@ NS_ASSUME_NONNULL_BEGIN
  */
 -(xmpp* _Nullable) getEnabledAccountForID:(NSNumber*) accountID;
 
+-(xmpp* _Nullable) getAccountForID:(NSNumber*) accountID;
+
 /**
  Returns YES if account is connected
  */
@@ -107,6 +110,7 @@ Sends a message to a specified contact in account. Calls completion handler on s
 
 #pragma mark XMPP settings
 
+@property (nonatomic, strong, readonly) NSMutableArray* allAccounts;
 @property (nonatomic, strong, readonly) NSMutableArray* enabledXMPP;
 @property (nonatomic, readonly) BOOL hasConnectivity;
 

@@ -31,6 +31,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 {
     nw_path_monitor_t _path_monitor;
     BOOL _hasConnectivity;
+    NSMutableArray* _allAccounts;
     NSMutableArray* _enabledXMPP;
 }
 @end
@@ -158,6 +159,8 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     [self upgradeBoolUserSettingsIfUnset:@"showAdvancedUI" toDefault:NO];
     
     [self upgradeBoolUserSettingsIfUnset:@"showNewChatView" toDefault:YES];
+
+    [self upgradeBoolUserSettingsIfUnset:@"migratedToStoringAllAccounts" toDefault:NO];
     
 // //always show onboarding on simulator for now
 // #if TARGET_OS_SIMULATOR
@@ -240,6 +243,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     self = [super init];
 
     _enabledXMPP = [NSMutableArray new];
+    _allAccounts = [NSMutableArray new];
     _hasConnectivity = NO;
     _isBackgrounded = NO;
     _isNotInFocus = NO;
@@ -392,6 +396,38 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     }
 }
 
+-(NSArray*) allAccounts
+{
+    if (![[HelperTools defaultsDB] boolForKey:@"migratedToStoringAllAccounts"])
+        [self migrateToStoringAllAccounts];
+
+    @synchronized(_allAccounts) {
+        return [[NSArray alloc] initWithArray:_allAccounts];
+    }
+}
+
+-(void) migrateToStoringAllAccounts
+{
+    @synchronized(_allAccounts) {
+        if([[[DataLayer sharedInstance] accountList] count] != [_allAccounts count])
+        {
+            NSMutableArray* allAccounts = [NSMutableArray new];
+            [SAMKeychain setAccessibilityType:kSecAttrAccessibleAfterFirstUnlock];
+            for(NSDictionary* dic in [[DataLayer sharedInstance] accountList])
+            {
+                NSString* jid = [NSString stringWithFormat:@"%@@%@", dic[kUsername], dic[kDomain]];
+                NSString* password = [SAMKeychain passwordForService:kMonalKeychainName account:((NSNumber*)dic[kAccountID]).stringValue];
+                MLXMPPIdentity* identity = [[MLXMPPIdentity alloc] initWithJid:jid password:password andResource:[dic objectForKey:kResource]];
+                MLXMPPServer* server = [[MLXMPPServer alloc] initWithHost:[dic objectForKey:kServer] andPort:[dic objectForKey:kPort] andDirectTLS:[[dic objectForKey:kDirectTLS] boolValue]];
+                xmpp* xmppAccount = [[xmpp alloc] initWithServer:server andIdentity:identity andAccountID:[dic objectForKey:kAccountID]];
+                [allAccounts addObject:xmppAccount];
+            }
+            [_allAccounts setArray:allAccounts];
+        }
+    }
+    [[HelperTools defaultsDB] setBool:YES forKey:@"migratedToStoringAllAccounts"];
+}
+
 -(void) catchupFinished:(NSNotification*) notification
 {
     xmpp* account = notification.object;
@@ -475,6 +511,16 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     return nil;
 }
 
+-(xmpp* _Nullable) getAccountForID:(NSNumber*) accountID
+{
+    for(xmpp* xmppAccount in [self allAccounts])
+    {
+        if(xmppAccount.accountID.intValue == accountID.intValue)
+            return xmppAccount;
+    }
+    return nil;
+}
+
 -(void) connectAccount:(NSNumber*) accountID
 {
     NSDictionary* account = [[DataLayer sharedInstance] detailsForAccount:accountID];
@@ -509,7 +555,7 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 
     NSError* error;
     NSString* jid = [NSString stringWithFormat:@"%@@%@", account[kUsername], account[kDomain]];
-    NSString* password = [SAMKeychain passwordForService:kMonalKeychainName account:((NSNumber*)account[kAccountID]).stringValue error:&error];
+    __unused NSString* password = [SAMKeychain passwordForService:kMonalKeychainName account:((NSNumber*)account[kAccountID]).stringValue error:&error];
     if(error)
     {
         DDLogError(@"Keychain error: %@", error);
@@ -535,27 +581,27 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
         
         return;
     }
-    MLXMPPIdentity* identity = [[MLXMPPIdentity alloc] initWithJid:jid password:password andResource:[account objectForKey:kResource]];
-    MLXMPPServer* server = [[MLXMPPServer alloc] initWithHost:[account objectForKey:kServer] andPort:[account objectForKey:kPort] andDirectTLS:[[account objectForKey:kDirectTLS] boolValue]];
-    xmpp* xmppAccount = [[xmpp alloc] initWithServer:server andIdentity:identity andAccountID:[account objectForKey:kAccountID]];
-    xmppAccount.statusMessage = [account objectForKey:@"statusMessage"];
-
-    @synchronized(_enabledXMPP) {
-        [_enabledXMPP addObject:xmppAccount];
-    }
-
-    if(![account[@"enabled"] boolValue])
+    xmpp* xmppAccount = [self getAccountForID:[account objectForKey:kAccountID]];
+    if (xmppAccount)
     {
-        DDLogInfo(@"existing but disabled account, not connecting");
-        return;
+        xmppAccount.isEnabled = YES;
+        @synchronized(_enabledXMPP) {
+            [_enabledXMPP addObject:xmppAccount];
+        }
+
+        if(![account[@"enabled"] boolValue])
+        {
+            DDLogInfo(@"existing but disabled account, not connecting");
+            return;
+        }
+        if(!self.isConnectBlocked)
+        {
+            DDLogInfo(@"starting connect");
+            [xmppAccount connect];
+        }
+        else
+            DDLogWarn(@"connect blocked, not connecting newly created xmpp* instance");
     }
-    if(!self.isConnectBlocked)
-    {
-        DDLogInfo(@"starting connect");
-        [xmppAccount connect];
-    }
-    else
-        DDLogWarn(@"connect blocked, not connecting newly created xmpp* instance");
 }
 
 -(void) disconnectAccount:(NSNumber*) accountID withExplicitLogout:(BOOL) explicitLogout
@@ -584,6 +630,8 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     if(account)
     {
         DDLogVerbose(@"got account and cleaning up.. ");
+        //NOTE: the following line might be necessary. Or it might make more sense to move it inside [xmpp disconnect]
+        //account.isEnabled = NO;
         [account disconnect:explicitLogout];
         account = nil;
         DDLogVerbose(@"done cleaning up account ");
@@ -772,6 +820,15 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
     NSNumber* accountID = [[DataLayer sharedInstance] addAccountWithDictionary:dic];
     if(accountID == nil)
         return nil;
+
+    MLXMPPIdentity* identity = [[MLXMPPIdentity alloc] initWithJid:jid password:password andResource:[dic objectForKey:kResource]];
+    MLXMPPServer* server = [[MLXMPPServer alloc] initWithHost:hardcodedServer andPort:[dic objectForKey:kPort] andDirectTLS:directTLS];
+    xmpp* xmppAccount = [[xmpp alloc] initWithServer:server andIdentity:identity andAccountID:accountID];
+    xmppAccount.statusMessage = [dic objectForKey:@"statusMessage"];
+
+    @synchronized(_allAccounts) {
+        [_allAccounts addObject:xmppAccount];
+    }
     [self addNewAccountToKeychainAndConnectWithPassword:password andAccountID:accountID];
     return accountID;
 }
@@ -789,6 +846,13 @@ static const int pingFreqencyMinutes = 5;       //about the same Conversations u
 {
     [self disconnectAccount:accountID withExplicitLogout:YES];
     [[DataLayer sharedInstance] removeAccount:accountID];
+    xmpp* account = [self getAccountForID:accountID];
+    if(account)
+    {
+        @synchronized(_allAccounts) {
+            [_allAccounts removeObject:account];
+        }
+    }
     [SAMKeychain deletePasswordForService:kMonalKeychainName account:accountID.stringValue];
     [HelperTools removeAllShareInteractionsForAccountID:accountID];
     // trigger UI removal
