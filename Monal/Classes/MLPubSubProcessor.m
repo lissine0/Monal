@@ -296,7 +296,7 @@ $$class_handler(bookmarks2Handler, $$ID(xmpp*, account), $$ID(NSString*, jid), $
                 }
             }
             //check if pinned status changed (the check is done inside of [MLContact togglePinnedChat:]
-            else if([ownFavorites containsObject:room])
+            if([ownFavorites containsObject:room])
             {
                 MLContact* contact = [MLContact createContactFromJid:room andAccountID:account.accountID];
                 [contact togglePinnedChat:pinned];
@@ -403,11 +403,34 @@ $$class_handler(handleBookmarks2FetchResult, $$ID(xmpp*, account), $$BOOL(succes
                 @"pubsub#max_items": max_items,
             } andHandler:$newHandler(self, bookmarks2Published, $ID(room))];
         }
-        //check if pinned status changed (the check is done inside of [MLContact togglePinnedChat:]
+        //sync the bookmark with the local pinned status, if they differ
         else if([ownFavorites containsObject:room])
         {
             MLContact* contact = [MLContact createContactFromJid:room andAccountID:account.accountID];
-            [contact togglePinnedChat:pinned];
+            if(pinned == contact.isPinned)
+                continue;
+            else if(contact.isPinned)
+            {
+                DDLogVerbose(@"Adding <pinned> element to the bookmark of the room %@", room);
+                if([item check:@"{urn:xmpp:bookmarks:1}conference/extensions"])
+                    [[item findFirst:@"{urn:xmpp:bookmarks:1}conference/extensions"] addChildNode:[[MLXMLNode alloc] initWithElement:@"pinned" andNamespace:@"urn:xmpp:bookmarks-pinning:0"]];
+                else
+                    [[item findFirst:@"{urn:xmpp:bookmarks:1}conference"] addChildNode: [[MLXMLNode alloc] initWithElement:@"extensions" withAttributes:@{} andChildren:@[
+                        [[MLXMLNode alloc] initWithElement:@"pinned" andNamespace:@"urn:xmpp:bookmarks-pinning:0" withAttributes:@{} andChildren:@[] andData:nil],
+                    ] andData:nil]];
+            }
+            else if(!contact.isPinned)
+            {
+                DDLogVerbose(@"Removing <pinned> element from the bookmark of the room %@", room);
+                [[item findFirst:@"{urn:xmpp:bookmarks:1}conference/extensions"] removeChildNode:[item findFirst:@"{urn:xmpp:bookmarks:1}conference/extensions/{urn:xmpp:bookmarks-pinning:0}pinned"]];
+            }
+
+            //publish this bookmark item again
+            [account.pubsub publishItem:item onNode:@"urn:xmpp:bookmarks:1" withConfigOptions:@{
+                @"pubsub#persist_items": @"true",
+                @"pubsub#access_model": @"whitelist",
+                @"pubsub#max_items": max_items,
+            } andHandler:$newHandler(self, bookmarks2Published, $ID(room))];
         }
     }
         
