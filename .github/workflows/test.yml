@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   run_tests:
-    runs-on: macos-latest
+    runs-on: macos-15
     name: Run automated tests
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +27,8 @@ jobs:
           lfs: true
       - name: Checkout submodules
         run: git submodule update -f --init --remote
+      - name: Print available destinations
+        run: xcrun xctrace list devices
       - name: Select Xcode version
         run: sudo xcode-select -s '/Applications/Xcode_16.2.app/Contents/Developer'
       - name: Build rust
@@ -38,10 +40,10 @@ jobs:
         working-directory: Monal
         run: |
           set -o pipefail && \
-          NSUnbufferedIO=YES xcodebuild \
+          NSUnbufferedIO=YES xcodebuild -verbose \
             -workspace Monal.xcworkspace \
             -scheme Monal \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.4' \
             test \
             2>&1 | \
           xcbeautify --renderer github-actions
